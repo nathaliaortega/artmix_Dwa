@@ -42,24 +42,32 @@ class PlaysContainer extends Component {
       filterText: "",
       modal: false,
       imageNew: "",
-      authorNew: ""
+      authorNew: "",
+      list: [],
+      storage: window.localStorage
     };
   }
   componentDidMount() {
-    window.localStorage.clear();
-    const plays = [
-      {
-        author: "William Shakespeare",
-        image:
-          "https://images-na.ssl-images-amazon.com/images/I/51BNfws6kzL._SX316_BO1,204,203,200_.jpg"
-      },
-      {
-        author: "William Shakespeare",
-        image:
-          "https://images-na.ssl-images-amazon.com/images/I/41stzQ0MsgL._SX318_BO1,204,203,200_.jpg"
-      }
-    ];
-    window.localStorage.setItem("plays", JSON.stringify(plays));
+    const storage = this.state.storage;
+    const playsStorage = JSON.parse(storage.getItem("plays"));
+    if (!playsStorage) {
+      const plays = [
+        {
+          author: "William Shakespeare",
+          image:
+            "https://images-na.ssl-images-amazon.com/images/I/51BNfws6kzL._SX316_BO1,204,203,200_.jpg"
+        },
+        {
+          author: "Victor Hugo",
+          image:
+            "https://prodimage.images-bn.com/pimages/2940016615394_p0_v1_s550x406.jpg"
+        }
+      ];
+      storage.setItem("plays", JSON.stringify(plays));
+    }
+    this.setState(state => {
+      return { ...state, list: playsStorage };
+    });
   }
 
   handleChange = (e, field) => {
@@ -74,18 +82,18 @@ class PlaysContainer extends Component {
       modal: !this.state.modal
     });
   };
-  handleAdd = (e, list) => {
+  handleAdd = e => {
     e.preventDefault();
     const { imageNew, authorNew } = this.state;
-    var newPlay={
+    var newPlay = {
       author: authorNew,
-        image:
-          imageNew
+      image: imageNew
     };
-    list.push(newPlay);    
-    window.localStorage.clear();
-    window.localStorage.setItem("plays",JSON.stringify(list))
-    
+    window.localStorage.setItem(
+      "plays",
+      JSON.stringify([...this.state.list, newPlay])
+    );
+
     this.setState({
       modal: false
     });
@@ -96,21 +104,35 @@ class PlaysContainer extends Component {
       [field]: e.target.value
     });
   };
+  searchPlay = list => {
+    const searchText = this.state.filterText;
+    const found = this.state.list.filter(item =>
+      item.author
+        .toString()
+        .toLowerCase()
+        .includes(searchText.toLowerCase())
+    );
+    console.log(searchText);
+
+    console.log(found);
+    return found;
+  };
   render() {
-    const { filterText, modal } = this.state;
+    const { modal, list } = this.state;
     let cards;
     var ifModal;
-    const playsStorage = JSON.parse(window.localStorage.getItem("plays"));
-    const playsList = playsStorage.filter(val =>
-      val.author.toLowerCase().includes(filterText)
-    );
-    cards = (
-      <Grid>
-        {playsList.map(({ key, author, image }) => (
-          <Card key={image} Image={image} author={author} />
-        ))}
-      </Grid>
-    );
+    if (list !== null) {
+      cards = (
+        <Grid>
+          {this.searchPlay(list).map(({ key, author, image }) => (
+            <Card key={image} Image={image} author={author} />
+          ))}
+        </Grid>
+      );
+    } else {
+      cards = <Grid></Grid>;
+    }
+
     if (modal) {
       ifModal = (
         <>
@@ -134,13 +156,7 @@ class PlaysContainer extends Component {
               <br />
               <br />
               <Add onClick={this.handleModal}>Cancelar</Add>
-              <Add
-                onClick={e => {
-                  this.handleAdd(e, playsStorage);
-                }}
-              >
-                Enviar
-              </Add>
+              <Add onClick={this.handleAdd}>Enviar</Add>
             </ModalBox>
           </Modal>
         </>
